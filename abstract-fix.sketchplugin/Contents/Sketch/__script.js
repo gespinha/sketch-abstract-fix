@@ -115,7 +115,12 @@ var library = sketch__WEBPACK_IMPORTED_MODULE_0___default.a.getLibraries().filte
 var librarySymbols = library.flatMap(function (l) {
   return l.getImportableSymbolReferencesForDocument(document);
 });
-var selected = document.selectedLayers.layers; // look for clean symbol sources
+var selected = document.selectedLayers.layers;
+var counter = {
+  symbols: 0,
+  overrides: 0,
+  detached: 0
+}; // look for clean symbol sources
 
 var findSymbol = function findSymbol(layerName) {
   var search = librarySymbols.find(function (s) {
@@ -138,7 +143,11 @@ var cleanSources = function cleanSources(layer) {
   });
   var layerMasterSource = findSymbol(layer.master.name); // fix base layer source
 
-  if (layerMasterSource && layer.master !== layer.master.name) layer.master = layerMasterSource; // loop through overrides
+  if (layerMasterSource && layerMasterSource !== layer.master) {
+    layer.master = layerMasterSource;
+    counter.symbols++;
+  } // loop through overrides
+
 
   for (var i = 0; i < symbolsToClean.length; i++) {
     var thisSymbol = symbolsToClean[i];
@@ -153,7 +162,10 @@ var cleanSources = function cleanSources(layer) {
 
 
     if (symbolSource) {
-      if (thisSymbol.value !== symbolSource.symbolId) layer.setOverrideValue(thisSymbol, symbolSource.symbolId);
+      if (thisSymbol.editable && thisSymbol.value !== symbolSource.symbolId) {
+        layer.setOverrideValue(thisSymbol, symbolSource.symbolId);
+        counter.overrides++;
+      }
     } else {
       ui.alert('Error', 'Library for "' + thisSymbol.affectedLayer.name + '" not found!');
     }
@@ -162,10 +174,6 @@ var cleanSources = function cleanSources(layer) {
 
 
 var process = function process(layers, detach) {
-  var groupCount = layers.filter(function (l) {
-    return l.type == 'Group';
-  }).length;
-
   for (var i = 0; i < layers.length; i++) {
     var thisLayer = layers[i];
 
@@ -173,25 +181,37 @@ var process = function process(layers, detach) {
       process(thisLayer.layers, detach);
     } else if (thisLayer.type == 'SymbolInstance') {
       var result = cleanSources(thisLayer);
-      if (detach) thisLayer.detach();
+
+      if (detach) {
+        thisLayer.detach();
+        counter.detached++;
+      }
     }
   }
-}; // success message
+}; // pluralize helper
 
 
-var success = function success(message) {
-  var rocket = String.fromCodePoint(128640);
-  return ui.message(rocket + ' ' + message + ' ' + rocket);
+var pluralize = function pluralize(num, word) {
+  return num + ' ' + word + (num !== 1 ? 's' : '');
+}; // UI message
+
+
+var message = function message() {
+  var emoji = String.fromCodePoint(128640);
+  var symbols = pluralize(counter.symbols, 'symbol');
+  var overrides = pluralize(counter.overrides, 'override');
+  var detached = counter.detached + ' detached';
+  return ui.message(symbols + ', ' + overrides + ' and ' + detached + ' ' + emoji);
 }; // handler functions
 
 
 function processFix() {
   process(selected, false);
-  return success('All symbols have been fixed!');
+  return message();
 }
 function processDetach() {
   process(selected, true);
-  return success('All symbols have been fixed!');
+  return message();
 }
 
 /***/ }),
