@@ -21,44 +21,61 @@ let findSymbol = (layerName) => {
 // clean the dirty symbol sources with now ones
 let cleanSources = (layer) => {
   let symbolsToClean = layer.overrides.filter((o) => o.symbolOverride)
-  layer.master = findSymbol(layer.master.name)
+  let layerMasterSource = findSymbol(layer.master.name)
 
-  symbolsToClean.forEach((l) => {
-    let symbolSource = {}
+  // fix base layer source
+  if(layerMasterSource && layer.master !== layer.master.name) layer.master = layerMasterSource
+
+  // loop through overrides
+  for(var i = 0; i < symbolsToClean.length; i++){
+    let thisSymbol = symbolsToClean[i]
+    let symbolSource = null
 
     // get source symbol
-    if(l.isDefault){
-      symbolSource = findSymbol(l.affectedLayer.master.name)
+    if(thisSymbol.isDefault){
+      symbolSource = findSymbol(thisSymbol.affectedLayer.master.name)
     } else {
-      symbolSource = findSymbol(context.document.documentData().symbolWithID(l.value).name())
+      let symbolContext = context.document.documentData().symbolWithID(thisSymbol.value)
+      symbolSource = symbolContext ? findSymbol(symbolContext.name()) : null
     }
 
     // update symbol
     if(symbolSource){
-      layer.setOverrideValue(l, symbolSource.symbolId)
+      if(thisSymbol.value !== symbolSource.symbolId) layer.setOverrideValue(thisSymbol, symbolSource.symbolId)
     } else {
-      ui.alert('Error', 'Library for "' + l.affectedLayer.name + '" not found!')
+      ui.alert('Error', 'Library for "' + thisSymbol.affectedLayer.name + '" not found!')
     }
-  })
+  }
 }
 
 // run the process
 let process = (layers, detach) => {
   let groupCount = layers.filter((l) => l.type == 'Group').length
 
-  layers.forEach((l) => {
-    if(l.type == 'Group'){
-      process(l.layers, detach)
-    } else if(l.type == 'SymbolInstance'){
-      cleanSources(l)
-      if(detach) l.detach()
-    }
-  })
+  for(var i = 0; i < layers.length; i++){
+    let thisLayer = layers[i]
 
+    if(thisLayer.type == 'Group'){
+      process(thisLayer.layers, detach)
+    } else if(thisLayer.type == 'SymbolInstance'){
+      let result = cleanSources(thisLayer)
+      if(detach) thisLayer.detach()
+    }
+  }
+}
+
+// success message
+let success = (message) => {
   const rocket = String.fromCodePoint(128640)
-  if(groupCount === 0) ui.message(rocket + ' All symbols have been fixed! ' + rocket)
+  return ui.message(rocket + ' ' + message + ' ' + rocket)
 }
 
 // handler functions
-export function processFix(){ return process(selected, false) }
-export function processDetach(){ return process(selected, true) }
+export function processFix(){
+  process(selected, false)
+  return success('All symbols have been fixed!')
+}
+export function processDetach(){
+  process(selected, true)
+  return success('All symbols have been fixed!')
+}

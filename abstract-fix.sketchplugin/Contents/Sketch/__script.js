@@ -136,23 +136,28 @@ var cleanSources = function cleanSources(layer) {
   var symbolsToClean = layer.overrides.filter(function (o) {
     return o.symbolOverride;
   });
-  layer.master = findSymbol(layer.master.name);
-  symbolsToClean.forEach(function (l) {
-    var symbolSource = {}; // get source symbol
+  var layerMasterSource = findSymbol(layer.master.name); // fix base layer source
 
-    if (l.isDefault) {
-      symbolSource = findSymbol(l.affectedLayer.master.name);
+  if (layerMasterSource && layer.master !== layer.master.name) layer.master = layerMasterSource; // loop through overrides
+
+  for (var i = 0; i < symbolsToClean.length; i++) {
+    var thisSymbol = symbolsToClean[i];
+    var symbolSource = null; // get source symbol
+
+    if (thisSymbol.isDefault) {
+      symbolSource = findSymbol(thisSymbol.affectedLayer.master.name);
     } else {
-      symbolSource = findSymbol(context.document.documentData().symbolWithID(l.value).name());
+      var symbolContext = context.document.documentData().symbolWithID(thisSymbol.value);
+      symbolSource = symbolContext ? findSymbol(symbolContext.name()) : null;
     } // update symbol
 
 
     if (symbolSource) {
-      layer.setOverrideValue(l, symbolSource.symbolId);
+      if (thisSymbol.value !== symbolSource.symbolId) layer.setOverrideValue(thisSymbol, symbolSource.symbolId);
     } else {
-      ui.alert('Error', 'Library for "' + l.affectedLayer.name + '" not found!');
+      ui.alert('Error', 'Library for "' + thisSymbol.affectedLayer.name + '" not found!');
     }
-  });
+  }
 }; // run the process
 
 
@@ -160,24 +165,33 @@ var process = function process(layers, detach) {
   var groupCount = layers.filter(function (l) {
     return l.type == 'Group';
   }).length;
-  layers.forEach(function (l) {
-    if (l.type == 'Group') {
-      process(l.layers, detach);
-    } else if (l.type == 'SymbolInstance') {
-      cleanSources(l);
-      if (detach) l.detach();
+
+  for (var i = 0; i < layers.length; i++) {
+    var thisLayer = layers[i];
+
+    if (thisLayer.type == 'Group') {
+      process(thisLayer.layers, detach);
+    } else if (thisLayer.type == 'SymbolInstance') {
+      var result = cleanSources(thisLayer);
+      if (detach) thisLayer.detach();
     }
-  });
+  }
+}; // success message
+
+
+var success = function success(message) {
   var rocket = String.fromCodePoint(128640);
-  if (groupCount === 0) ui.message(rocket + ' All symbols have been fixed! ' + rocket);
+  return ui.message(rocket + ' ' + message + ' ' + rocket);
 }; // handler functions
 
 
 function processFix() {
-  return process(selected, false);
+  process(selected, false);
+  return success('All symbols have been fixed!');
 }
 function processDetach() {
-  return process(selected, true);
+  process(selected, true);
+  return success('All symbols have been fixed!');
 }
 
 /***/ }),
