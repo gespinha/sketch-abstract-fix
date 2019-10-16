@@ -2,7 +2,7 @@
   "name": "Abstract Fix",
   "author": "Goncalo Espinha",
   "authorEmail": "gonespinha@gmail.com",
-  "version": "0.0.1",
+  "version": "1.0",
   "homepage": "https://github.com/gespinha/sketch-abstract-fix",
   "icon": "icon.png",
   "description": "Plugin to fix Abstract symbol links",

@@ -31,7 +31,7 @@ Select a layer and click Plugins > Abstract Fix > Fix and Detach Symbols
 
 ## Changelog
 
-- **0.0.1** - Initial release.
+- **1.0** - Initial release.
 
 ## License
 
