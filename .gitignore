@@ -1,5 +1,7 @@
 # resource folders
 node_modules
+.npm
+npm-debug.log
 package-lock.json
 
 # misc files
