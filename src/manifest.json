@@ -2,10 +2,10 @@
   "name": "Abstract Fix",
   "author": "Goncalo Espinha",
   "authorEmail": "gonespinha@gmail.com",
-  "version": "0.0.1",
+  "version": "1.0",
   "homepage": "https://github.com/gespinha/sketch-abstract-fix",
   "icon": "icon.png",
-  "description": "A plugin to fix Abstract symbol links",
+  "description": "Plugin to fix Abstract symbol links",
   "identifier": "com.abstract-fix.ge",
   "$schema": "https://raw.githubusercontent.com/BohemianCoding/SketchAPI/develop/docs/sketch-plugin-manifest-schema.json",
   "commands": [

@@ -6,6 +6,12 @@ const library = sketch.getLibraries().filter((l) => l.libraryType == 'User')
 const librarySymbols = library.flatMap((l) => l.getImportableSymbolReferencesForDocument(document))
 const selected = document.selectedLayers.layers
 
+var counter = {
+  symbols: 0,
+  overrides: 0,
+  detached: 0
+}
+
 // look for clean symbol sources
 let findSymbol = (layerName) => {
   let search = librarySymbols.find((s) => s.name == layerName)
@@ -24,7 +30,10 @@ let cleanSources = (layer) => {
   let layerMasterSource = findSymbol(layer.master.name)
 
   // fix base layer source
-  if(layerMasterSource && layer.master !== layer.master.name) layer.master = layerMasterSource
+  if(layerMasterSource && layerMasterSource !== layer.master){
+    layer.master = layerMasterSource
+    counter.symbols++
+  }
 
   // loop through overrides
   for(var i = 0; i < symbolsToClean.length; i++){
@@ -41,7 +50,10 @@ let cleanSources = (layer) => {
 
     // update symbol
     if(symbolSource){
-      if(thisSymbol.value !== symbolSource.symbolId) layer.setOverrideValue(thisSymbol, symbolSource.symbolId)
+      if(thisSymbol.editable && thisSymbol.value !== symbolSource.symbolId){
+        layer.setOverrideValue(thisSymbol, symbolSource.symbolId)
+        counter.overrides++
+      }
     } else {
       ui.alert('Error', 'Library for "' + thisSymbol.affectedLayer.name + '" not found!')
     }
@@ -50,8 +62,6 @@ let cleanSources = (layer) => {
 
 // run the process
 let process = (layers, detach) => {
-  let groupCount = layers.filter((l) => l.type == 'Group').length
-
   for(var i = 0; i < layers.length; i++){
     let thisLayer = layers[i]
 
@@ -59,23 +69,35 @@ let process = (layers, detach) => {
       process(thisLayer.layers, detach)
     } else if(thisLayer.type == 'SymbolInstance'){
       let result = cleanSources(thisLayer)
-      if(detach) thisLayer.detach()
+      if(detach){
+        thisLayer.detach()
+        counter.detached++
+      }
     }
   }
 }
 
-// success message
-let success = (message) => {
-  const rocket = String.fromCodePoint(128640)
-  return ui.message(rocket + ' ' + message + ' ' + rocket)
+// pluralize helper
+let pluralize = (num, word) => {
+  return num + ' ' + word + (num !== 1 ? 's' : '')
+}
+
+// UI message
+let message = () => {
+  let emoji = String.fromCodePoint(128640)
+  let symbols = pluralize(counter.symbols, 'symbol')
+  let overrides = pluralize(counter.overrides, 'override')
+  let detached = counter.detached + ' detached'
+
+  return ui.message(symbols + ', ' + overrides + ' and ' + detached + ' ' + emoji)
 }
 
 // handler functions
 export function processFix(){
   process(selected, false)
-  return success('All symbols have been fixed!')
+  return message()
 }
 export function processDetach(){
   process(selected, true)
-  return success('All symbols have been fixed!')
+  return message()
 }
